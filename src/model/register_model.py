@@ -58,6 +58,13 @@ def register_model(model_name: str, model_info: dict):
         tracking_uri = mlflow.get_tracking_uri()
         logger.debug(f"Tracking URI: {tracking_uri}")
 
+        
+# ✅ Add this check immediately after getting the tracking URI
+        if "dagshub.com" in tracking_uri:
+            logger.warning("Model registry operations are not supported on DagsHub. Skipping registration.")
+            return
+
+
         model_uri = f"runs:/{model_info['run_id']}/{model_info['model_path']}"
         model_version = mlflow.register_model(model_uri, model_name)
 
