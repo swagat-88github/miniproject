@@ -50,31 +50,32 @@ def load_model_info(file_path: str) -> dict:
         logger.error('Unexpected error occurred while loading the model info: %s', e)
         raise
 
-def register_model(model_name: str, model_info: dict):
-    """Register the model to the MLflow Model Registry."""
-    try:
-        tracking_uri = mlflow.get_tracking_uri()  # ✅ ADDED: Get current tracking URI
-        logger.debug(f"Tracking URI: {tracking_uri}")
+from mlflow import MlflowClient
 
-        # 🔄 CHANGED: Skip registration if using DagsHub
-        if "dagshub.com" in tracking_uri:
-            logger.warning("Model registry is not supported on DagsHub. Skipping model registration.")
-            return
+def register_model(model_name: str, model_info: dict):
+    """Register the model to the MLflow Model Registry and assign alias."""
+    try:
+        tracking_uri = mlflow.get_tracking_uri()
+        logger.debug(f"Tracking URI: {tracking_uri}")
 
         model_uri = f"runs:/{model_info['run_id']}/{model_info['model_path']}"
         model_version = mlflow.register_model(model_uri, model_name)
 
-        client = mlflow.tracking.MlflowClient()
-        client.transition_model_version_stage(
+        client = MlflowClient()
+
+        # ✅ Use alias instead of stage
+        client.set_registered_model_alias(
             name=model_name,
-            version=model_version.version,
-            stage="Staging"
+            alias="staging",
+            version=model_version.version
         )
 
-        logger.debug(f'Model {model_name} version {model_version.version} registered and transitioned to Staging.')
+        logger.debug(f'Model {model_name} version {model_version.version} registered and aliased as "staging".')
+
     except Exception as e:
         logger.error('Error during model registration: %s', e)
         raise
+
 
 def main():
     try:
